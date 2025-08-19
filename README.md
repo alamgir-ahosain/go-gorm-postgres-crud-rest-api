@@ -1,2 +1,1 @@
-go get gorm.io/gorm
-go get gorm.io/driver/postgres 
+Build a `CRUD` `REST API` in `Go (Golang)` using **GORM** with `PostgreSQL` and the `Gorilla Mux framework`.
