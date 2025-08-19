@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"github.com/alamgir-ahosain/go-gorm-postgres-crud-rest-api/cmd/MyApp/internal/db"
 	"github.com/alamgir-ahosain/go-gorm-postgres-crud-rest-api/cmd/MyApp/internal/models"
 	"github.com/alamgir-ahosain/go-gorm-postgres-crud-rest-api/cmd/MyApp/internal/services"
-	// "github.com/alamgir-ahosain/go-gorm-postgres-crud-rest-api/internal/db"
+	"gorm.io/gorm"
 )
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -15,15 +17,38 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if id == 0 {
 		return
 	}
-	//decode request body into user struct
+
 	var user models.Users
-	err := json.NewDecoder(r.Body).Decode(&user)
+	row := db.DB.First(&user, id)
+
+	//Handle error
+	if row.Error != nil {
+		if errors.Is(row.Error, gorm.ErrRecordNotFound) {
+			services.HandleHTTPError(w, row.Error, http.StatusNotFound)
+		} else {
+			services.HandleHTTPError(w, row.Error, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	//decode request body into user struct
+	var updateUser struct {
+		SID  string  `gorm:"column:sid" json:"sid"`
+		Name string  `json:"name"`
+		CGPA float32 `json:"cgpa"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&updateUser)
 	services.HandleHTTPError(w, err, http.StatusBadRequest)
 
-	//Run update query
-	// _, err = db.DB.Exec("update users set sid=$1,name=$2,cgpa=$3 where id=$4", user.SID, user.Name, user.CGPA, id)
-	// services.HandleHTTPError(w, err, http.StatusInternalServerError)
-	// user.ID = id
-	// services.MakeJSONFormatFunc(w, user, 200)
+	// update Query
+	db.DB.Model(&user).Updates(models.Users{
+		SID:  updateUser.SID,
+		Name: updateUser.Name,
+		CGPA: updateUser.CGPA,
+	})
+	// Reload updated user
+	db.DB.First(&user, id)
+	services.MakeJSONFormatFunc(w, user, 200)
 
 }
