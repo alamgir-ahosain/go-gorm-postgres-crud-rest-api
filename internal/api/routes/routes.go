@@ -14,5 +14,5 @@ func RegisterRoutes(r *mux.Router) {
 
 	r.HandleFunc("/users/{id}", handlers.UpdateUser).Methods("PUT")
 
-	// r.HandleFunc("/users/{id}", handlers.DeleteUser).Methods("DELETE")
+	r.HandleFunc("/users/{id}", handlers.DeleteUser).Methods("DELETE")
 }

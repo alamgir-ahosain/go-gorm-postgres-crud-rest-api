@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/alamgir-ahosain/go-gorm-postgres-crud-rest-api/cmd/MyApp/internal/db"
+	"github.com/alamgir-ahosain/go-gorm-postgres-crud-rest-api/cmd/MyApp/internal/models"
 	"github.com/alamgir-ahosain/go-gorm-postgres-crud-rest-api/cmd/MyApp/internal/services"
-	// "github.com/alamgir-ahosain/go-gorm-postgres-crud-rest-api/internal/db"
+	"gorm.io/gorm"
 )
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
@@ -13,17 +16,26 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//delete query
-	// row, err := db.DB.Exec("delete from users where id=$1", id)
-	// services.HandleHTTPError(w, err, http.StatusInternalServerError)
+	var user models.Users
+	row := db.DB.First(&user, id)
 
-	// //check if any row was deleted
-	// rowsAffected, err := row.RowsAffected()
-	// services.HandleHTTPError(w, err, http.StatusInternalServerError)
-	// if rowsAffected == 0 {
-	// 	http.Error(w, "User not found", http.StatusNotFound)
-	// 	return
-	// }
-	// w.WriteHeader(http.StatusNoContent) //204
+	//Handle error
+	if row.Error != nil {
+		if errors.Is(row.Error, gorm.ErrRecordNotFound) {
+			services.HandleHTTPError(w, row.Error, http.StatusNotFound)
+		} else {
+			services.HandleHTTPError(w, row.Error, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	//delete query
+	row = db.DB.Delete(&user, id)
+	services.HandleHTTPError(w, row.Error, http.StatusInternalServerError)
+	if row.RowsAffected == 0 {
+		services.HandleHTTPError(w, row.Error, http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent) //204,no content
 
 }
